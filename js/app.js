@@ -231,12 +231,10 @@ function applySensitivity() {
 function axisBar(name, value) {
   const pct = Math.abs(value) * 50;
   const side = value >= 0 ? "pos" : "neg";
+  const pos = value >= 0 ? `left:50%;width:${pct}%` : `right:50%;width:${pct}%`;
   return `<div class="axis">
     <span class="axisName">${name}</span>
-    <div class="axisTrack">
-      <div class="axisFill ${side}" style="width:${pct}%;
-           ${value >= 0 ? "left:50%" : "right:50%"}"></div>
-    </div>
+    <div class="axisTrack"><div class="axisFill ${side}" style="${pos}"></div></div>
     <span class="axisVal">${value.toFixed(2)}</span>
   </div>`;
 }
@@ -260,7 +258,6 @@ function renderCapture(c) {
     ["鏡像", c.shape.mirrorReverse ? "⇄ 逆再生" : "—"],
     ["声の高さ", c.shape.baseF0Override ? `${c.shape.baseF0Override.toFixed(0)} Hz` : "自動"],
     ["声量", `${(c.shape.replyGain * 100).toFixed(0)}%`],
-    ["平坦度", f.flatness.toFixed(2)],
   ];
   // 真似の生真面目さ: 入力のずれた音程 → きっちりドレミの返事 (MacTuner 連携)
   let tunerLine = "";
@@ -270,7 +267,9 @@ function renderCapture(c) {
     tunerLine = `<div class="tunerLine">${noteDisplay(c.features.pitchMedianHz)}
       と聴こえたので ${melody} で返しました</div>`;
   }
+  $("captureCard").classList.remove("placeholder");
   $("captureCard").innerHTML = `
+    <div class="panel-title">RESULT</div>
     <div class="kana">${c.kana}</div>
     <div class="romaji">${c.romaji}</div>
     ${tunerLine}
@@ -291,7 +290,7 @@ function renderHistory() {
     <div class="histRow">
       <span class="histKana">${c.kana}</span>
       <span class="histMeta">${c.features.durationSec.toFixed(2)}s ・ ${c.romaji}</span>
-      <button data-i="${i}" class="replayBtn">▶</button>
+      <button data-i="${i}" class="replayBtn">play</button>
     </div>`).join("");
   for (const btn of document.querySelectorAll(".replayBtn")) {
     btn.onclick = () => {

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ear Onomatopian — 聴いた音を、ことばで返す</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <div id="startOverlay">
@@ -15,56 +15,65 @@
         音色・アタック・ピッチの動き・長さ — として聴き取り、
         日本語のオノマトペに変換して喋り返します。
         すべてブラウザ内で処理され、録音は保存も送信もされません。</p>
-      <button id="startBtn">🎙 はじめる</button>
+      <button id="startBtn">はじめる</button>
       <p class="hint">マイクの使用許可を求められます (拒否してもテスト音で遊べます)</p>
     </div>
   </div>
 
-  <main>
-    <header>
-      <span id="statusDot" data-phase="idle"></span>
-      <span id="statusLabel">待機中</span>
-      <span class="spacer"></span>
-      <label class="sens">感度
-        <input type="range" id="sensitivity" min="-56" max="-24" step="1" value="-38">
-      </label>
-      <span id="sensValue">-38 dB</span>
-    </header>
+  <header>
+    <span class="brand">iceface <span class="pts">EAR</span></span>
+    <span id="statusDot" data-phase="idle"></span>
+    <span id="statusLabel">待機中</span>
+    <span class="spacer"></span>
+    <label class="sens">感度
+      <input type="range" id="sensitivity" min="-56" max="-24" step="1" value="-38">
+    </label>
+    <span id="sensValue">-38 dB</span>
+  </header>
 
-    <div id="levelMeter"><div id="levelFill"></div></div>
+  <div id="levelMeter"><div id="levelFill"></div></div>
 
-    <section id="captureCard" class="placeholder">
+  <section class="panel" id="captureCard">
+    <div class="placeholder">
       <div class="dots">●●●</div>
       <p>手を叩く・声を出す・物を鳴らすと、その音をオノマトペにして喋り返します</p>
-    </section>
+    </div>
+  </section>
 
-    <section class="demoRow">
-      <span class="demoLabel">テスト音:</span>
-      <button id="demo-clap">👏 拍手</button>
-      <button id="demo-bell">🔔 鈴</button>
-      <button id="demo-whistle">😗 口笛↑</button>
-      <button id="demo-growl">🐻 唸り</button>
-      <button id="demo-swell2">🌊 ふわ〜ふわ〜 (鏡像)</button>
-    </section>
+  <section class="panel">
+    <div class="panel-title">TEST</div>
+    <div class="demoRow">
+      <button id="demo-clap">拍手</button>
+      <button id="demo-bell">鈴</button>
+      <button id="demo-whistle">口笛↑</button>
+      <button id="demo-growl">唸り</button>
+      <button id="demo-swell2">ふわ〜ふわ〜</button>
+    </div>
+  </section>
 
-    <section class="deviceRow">
-      <label>🎙 入力
+  <section class="panel">
+    <div class="panel-title">AUDIO</div>
+    <div class="deviceRow">
+      <label>input
         <select id="inputSelect" disabled><option>はじめると選べます</option></select>
       </label>
-      <label>🔈 出力
+      <label>output
         <select id="outputSelect" disabled><option>はじめると選べます</option></select>
       </label>
-    </section>
+    </div>
+  </section>
 
-    <section id="historyList"></section>
+  <section class="panel">
+    <div class="panel-title">LOG</div>
+    <div id="historyList"></div>
+  </section>
 
-    <footer>
-      <span id="loadInfo"></span>
-      <span>Iceface Onomatopian Sound (PTS) series ・
-        <a href="https://github.com/Iceface-microtonal" target="_blank" rel="noopener">Iceface</a></span>
-    </footer>
-  </main>
+  <footer>
+    <span id="loadInfo"></span>
+    <span>Iceface Onomatopian Sound (PTS) series ・
+      <a href="https://github.com/Iceface-microtonal/ear-onomatopian" target="_blank" rel="noopener">GitHub</a></span>
+  </footer>
 
-  <script type="module" src="js/app.js?v=3"></script>
+  <script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>
