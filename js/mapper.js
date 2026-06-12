@@ -55,21 +55,25 @@ export function mapAxes(f) {
 }
 
 /// ピッチ輪郭 (または傾き) → mora ごとの pitch オフセット (半音)。
+/// 2026-06-13 (MacTuner 連携): 整数半音へ丸める (ソルフェージュ模倣)。
+/// ヨタヨタの歌でも返事は律儀に平均律グリッドに乗る — 生真面目さがコミカル。
 export function pitchOffsets(contourSemis, slope, durationSec, moraCount) {
   if (moraCount < 2) return [];
   if (contourSemis.length >= 2) {
     const magnitude = Math.max(...contourSemis) - Math.min(...contourSemis);
-    if (magnitude < 1.0) return pitchRamp(slope, durationSec, moraCount);
+    if (magnitude < 1.0) {
+      return pitchRamp(slope, durationSec, moraCount).map(Math.round);
+    }
     const n = contourSemis.length;
     return Array.from({ length: moraCount }, (_, i) => {
       const pos = (i / (moraCount - 1)) * (n - 1);
       const j = Math.min(n - 2, Math.floor(pos));
       const u = pos - j;
       const s = contourSemis[j] * (1 - u) + contourSemis[j + 1] * u;
-      return Math.max(-6, Math.min(6, s));
+      return Math.round(Math.max(-6, Math.min(6, s)));
     });
   }
-  return pitchRamp(slope, durationSec, moraCount);
+  return pitchRamp(slope, durationSec, moraCount).map(Math.round);
 }
 
 export function pitchRamp(slope, durationSec, moraCount) {

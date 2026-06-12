@@ -163,6 +163,30 @@ header { display: flex; align-items: center; gap: 10px; }
 }
 .demoRow button:hover { background: var(--panel); }
 
+/* ─── チューナー行 (MacTuner 連携) ─── */
+.tunerLine {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin-top: 4px;
+}
+
+/* ─── デバイス選択 ─── */
+.deviceRow {
+  display: flex; flex-wrap: wrap; gap: 14px;
+  font-size: 12px; color: var(--ink-soft);
+}
+.deviceRow label { display: flex; align-items: center; gap: 6px; }
+.deviceRow select {
+  border: 1px solid var(--pale-blue);
+  border-radius: 8px;
+  background: white;
+  color: var(--ink);
+  font-size: 12px;
+  padding: 4px 8px;
+  max-width: 220px;
+}
+.deviceRow select:disabled { color: var(--ink-soft); background: var(--panel); }
+
 /* ─── 履歴 ─── */
 #historyList { display: flex; flex-direction: column; gap: 6px; }
 .histRow {

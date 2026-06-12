@@ -66,6 +66,11 @@ export class SoundEventAnalyzer {
     this.magnitudes = new Float64Array(n / 2);
     this.smoothMags = new Float64Array(n / 2);
     this.smoothMagsValid = false;
+    // YIN ピッチ検出用リングバッファ (MacTuner 連携, 2026-06-13)。
+    // JS は vDSP が無いので窓 2048 (Swift 版は 4096)。検出域 ~45Hz–2000Hz。
+    this.yinWindowSize = 2048;
+    this.pitchRing = new Float32Array(this.yinWindowSize);
+    this.pitchRingFill = 0;
   }
 
   reset() {
@@ -75,6 +80,7 @@ export class SoundEventAnalyzer {
     this.silentSec = 0;
     this.currentDb = -80;
     this.smoothMagsValid = false;
+    this.pitchRingFill = 0;
   }
 
   /// frameSize サンプルのフレームを 1 つ処理。イベント終端で集計特徴を返す。
@@ -278,6 +284,17 @@ export class SoundEventAnalyzer {
   analyzeFrame(x) {
     const n = this.frameSize;
 
+    // ピッチリング更新 (無音でも進める: イベント頭で古い音を見ないように)
+    const W = this.yinWindowSize;
+    if (x.length >= W) {
+      this.pitchRing.set(x.subarray(x.length - W));
+      this.pitchRingFill = W;
+    } else {
+      this.pitchRing.copyWithin(0, x.length);
+      this.pitchRing.set(x, W - x.length);
+      this.pitchRingFill = Math.min(W, this.pitchRingFill + x.length);
+    }
+
     let sumSq = 0;
     for (let i = 0; i < n; i++) sumSq += x[i] * x[i];
     const rms = Math.sqrt(sumSq / n);
@@ -342,39 +359,66 @@ export class SoundEventAnalyzer {
       this.smoothMagsValid = true;
     }
 
-    const [pitchHz, pitchConfidence] = this.detectPitch(x);
+    const [pitchHz, pitchConfidence] = this.detectPitch();
     return { rms, db, centroidHz, flatness, flux, zcr, pitchHz, pitchConfidence };
   }
 
-  /// 正規化自己相関 F0 推定 (95–800Hz)。Swift detectPitch と同一の
-  /// 「最大相関と同等 (誤差 0.01) の最小 lag」方式でオクターブ誤爆を防ぐ。
-  detectPitch(x) {
-    const sr = this.sampleRate, n = this.frameSize;
-    const minLag = Math.max(2, Math.floor(sr / 800));
-    const maxLag = Math.min(n / 2, Math.floor(sr / 95));
-    if (maxLag <= minLag + 2) return [0, 0];
-    const w = n - maxLag;
+  /// YIN による F0 推定 (MacTuner 移植, 2026-06-13)。
+  /// 旧・正規化自己相関 (95–800Hz) を置換: 窓 2048 のリングで ~45Hz–2000Hz。
+  /// CMND しきい値 0.15 + 谷歩き + 放物線補間。confidence = 1 - cmnd 最小値。
+  detectPitch() {
+    const W = this.yinWindowSize;
+    if (this.pitchRingFill < W) return [0, 0];
+    const sr = this.sampleRate;
+    const x = this.pitchRing;
+    const half = W >> 1;
+    const minTau = Math.max(2, Math.floor(sr / 2000));
+    const maxTau = Math.min(half - 2, Math.floor(sr / 45));
+    if (minTau >= maxTau) return [0, 0];
 
-    let energy0 = 0;
-    for (let i = 0; i < w; i++) energy0 += x[i] * x[i];
-    if (energy0 <= 1e-6) return [0, 0];
-
-    const rs = new Float64Array(maxLag - minLag + 1);
-    for (let lag = minLag; lag <= maxLag; lag++) {
-      let cross = 0, energyL = 0;
-      for (let i = 0; i < w; i++) {
-        cross += x[i] * x[i + lag];
-        energyL += x[i + lag] * x[i + lag];
+    // CMND: cmnd[tau] = d(tau) * tau / Σ d(1..tau)
+    const cmnd = new Float64Array(maxTau + 2);
+    cmnd[0] = 1;
+    let runningSum = 0;
+    for (let tau = 1; tau <= maxTau + 1; tau++) {
+      let sum = 0;
+      for (let j = 0; j < half; j++) {
+        const d = x[j] - x[j + tau];
+        sum += d * d;
       }
-      const denom = Math.sqrt(energy0 * energyL);
-      rs[lag - minLag] = denom > 1e-9 ? cross / denom : 0;
+      runningSum += sum;
+      cmnd[tau] = runningSum > 0 ? (sum * tau) / runningSum : 1;
     }
-    let rMax = -Infinity;
-    for (const r of rs) if (r > rMax) rMax = r;
-    if (rMax <= 0.3) return [0, 0];
-    for (let i = 0; i < rs.length; i++) {
-      if (rs[i] >= rMax - 0.01) return [sr / (i + minLag), rMax];
+
+    // しきい値を最初に割った谷を局所最小まで歩く
+    const threshold = 0.15;
+    let bestTau = -1;
+    for (let tau = minTau; tau < maxTau; tau++) {
+      if (cmnd[tau] < threshold) {
+        let localMin = tau;
+        while (localMin + 1 < maxTau && cmnd[localMin + 1] < cmnd[localMin]) localMin++;
+        bestTau = localMin;
+        break;
+      }
     }
-    return [0, 0];
+    // フォールバック: 全体最小 (確度不足なら棄却)
+    if (bestTau === -1) {
+      let minVal = Infinity;
+      for (let t = minTau; t < maxTau; t++) {
+        if (cmnd[t] < minVal) { minVal = cmnd[t]; bestTau = t; }
+      }
+      if (minVal > 0.4) return [0, 0];
+    }
+    if (bestTau <= 1 || bestTau > maxTau) return [0, 0];
+
+    const conf = Math.max(0, 1 - cmnd[bestTau]);
+
+    // 放物線補間
+    const s0 = cmnd[bestTau - 1], s1 = cmnd[bestTau], s2 = cmnd[bestTau + 1];
+    const denom = 2 * (s0 - 2 * s1 + s2);
+    if (Math.abs(denom) <= 1e-10) return [sr / bestTau, conf];
+    const betterTau = bestTau + (s0 - s2) / denom;
+    if (betterTau <= 0) return [0, 0];
+    return [sr / betterTau, conf];
   }
 }

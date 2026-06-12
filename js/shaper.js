@@ -3,6 +3,8 @@
 // 「音の形 → 語の形」のものまね的な呼応 (長さ/ピッチ/声量/語尾/立ち上がり/鏡像)。
 //
 
+import { snapToEqualTemperament } from "./notes.js";
+
 export const ELONGATION_FACTOR = 2.2;
 
 export function shape(f, texture) {
@@ -29,12 +31,14 @@ export function shape(f, texture) {
   const elongateFinal = f.releaseSec > 0.35 && texture < 0.3 && moraCount <= 4;
 
   // ピッチ模倣 (オクターブを声域 140..340Hz に畳む)
+  // 2026-06-13 (MacTuner 連携): 最寄りの半音へスナップ。
+  // +30¢ ずれた歌にも、きっちりした音程で堂々と返す「生真面目な物真似」。
   let baseF0Override = null;
   if (f.voicedRatio > 0.4 && f.pitchMedianHz > 0) {
     let hz = f.pitchMedianHz;
     while (hz > 340) hz /= 2;
     while (hz < 140) hz *= 2;
-    baseF0Override = hz;
+    baseF0Override = snapToEqualTemperament(hz);
   }
 
   // 音量呼応

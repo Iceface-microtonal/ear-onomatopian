@@ -10,6 +10,7 @@ import { SoundEventAnalyzer } from "./analyzer.js";
 import { mapAxes, pitchOffsets } from "./mapper.js";
 import { shape, applyShape } from "./shaper.js";
 import { renderEvent } from "./renderer.js";
+import { noteDisplay, melodyDisplay } from "./notes.js";
 
 // ─── 音源リスト (KanaFormatter の組合せと一致: 録音済み 110 ファイル) ───
 const RESTRICTED = { ky: ["a","u","o"], gy: ["a","u","o"], ny: ["a","u","o"],
@@ -59,25 +60,70 @@ async function start() {
   analyzer = new SoundEventAnalyzer(ctx.sampleRate, 1024);
   applySensitivity();
 
-  // マイク
+  await ctx.audioWorklet.addModule("js/capture-worklet.js").catch(() => {});
+  await startMic(null);
+  await populateDeviceSelects();
+}
+
+// ─── マイク開始 / デバイス切替 ───
+let micStream = null;
+let micSrc = null;
+let micNode = null;
+
+async function startMic(deviceId) {
+  // 既存の入力を畳む
+  if (micStream) {
+    micStream.getTracks().forEach((t) => t.stop());
+    micSrc?.disconnect();
+    micNode?.disconnect();
+    micStream = null;
+  }
   try {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false,
-               autoGainControl: false },
-    });
-    await ctx.audioWorklet.addModule("js/capture-worklet.js");
-    const src = ctx.createMediaStreamSource(stream);
-    const node = new AudioWorkletNode(ctx, "capture-processor");
-    node.port.onmessage = (e) => onFrame(e.data);
-    src.connect(node);
+    const audio = { echoCancellation: false, noiseSuppression: false,
+                    autoGainControl: false };
+    if (deviceId) audio.deviceId = { exact: deviceId };
+    micStream = await navigator.mediaDevices.getUserMedia({ audio });
+    micSrc = ctx.createMediaStreamSource(micStream);
+    micNode = new AudioWorkletNode(ctx, "capture-processor");
+    micNode.port.onmessage = (e) => onFrame(e.data);
+    micSrc.connect(micNode);
     // worklet は出力不要 (接続しないと動かないブラウザがあるため gain 0 で繋ぐ)
     const sink = ctx.createGain();
     sink.gain.value = 0;
-    node.connect(sink).connect(ctx.destination);
+    micNode.connect(sink).connect(ctx.destination);
+    analyzer.reset();
     setStatus("listening", "聴いています");
   } catch (err) {
     console.warn("mic unavailable:", err);
     setStatus("denied", "マイクが使えません — 下のテスト音で試せます");
+  }
+}
+
+// ─── デバイス選択 (入力: getUserMedia deviceId / 出力: AudioContext.setSinkId) ───
+async function populateDeviceSelects() {
+  const inSel = $("inputSelect"), outSel = $("outputSelect");
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const inputs = devices.filter((d) => d.kind === "audioinput");
+    inSel.innerHTML = `<option value="">既定のマイク</option>` +
+      inputs.map((d, i) =>
+        `<option value="${d.deviceId}">${d.label || `マイク ${i + 1}`}</option>`).join("");
+    inSel.disabled = inputs.length === 0;
+
+    if (typeof ctx.setSinkId === "function") {
+      const outputs = devices.filter((d) => d.kind === "audiooutput");
+      outSel.innerHTML = `<option value="">既定のスピーカー</option>` +
+        outputs.map((d, i) =>
+          `<option value="${d.deviceId}">${d.label || `スピーカー ${i + 1}`}</option>`).join("");
+      outSel.disabled = outputs.length === 0;
+    } else {
+      outSel.innerHTML = `<option value="">このブラウザは出力切替非対応</option>`;
+      outSel.disabled = true;
+    }
+  } catch (err) {
+    console.warn("enumerateDevices failed:", err);
+    inSel.disabled = true;
+    outSel.disabled = true;
   }
 }
 
@@ -204,6 +250,7 @@ function renderCapture(c) {
     ["ピーク", `${f.peakDb.toFixed(0)} dB`],
     ["重心", `${f.centroidHz.toFixed(0)} Hz`],
     ["ピッチ", f.pitchMedianHz > 0 ? `${f.pitchMedianHz.toFixed(0)} Hz` : "—"],
+    ["音名", f.pitchMedianHz > 0 ? noteDisplay(f.pitchMedianHz) : "—"],
     ["傾き", `${f.pitchSlopeSemisPerSec >= 0 ? "+" : ""}${f.pitchSlopeSemisPerSec.toFixed(1)} st/s`],
     ["旋律", f.pitchContourSemis.length ? "あり" : "—"],
     ["再打", `${f.reattackCount}`],
@@ -215,9 +262,18 @@ function renderCapture(c) {
     ["声量", `${(c.shape.replyGain * 100).toFixed(0)}%`],
     ["平坦度", f.flatness.toFixed(2)],
   ];
+  // 真似の生真面目さ: 入力のずれた音程 → きっちりドレミの返事 (MacTuner 連携)
+  let tunerLine = "";
+  if (c.shape.baseF0Override) {
+    const melody = melodyDisplay(c.shape.baseF0Override,
+                                 c.event.moras.map((m) => m.pitchOffsetSemis));
+    tunerLine = `<div class="tunerLine">${noteDisplay(c.features.pitchMedianHz)}
+      と聴こえたので ${melody} で返しました</div>`;
+  }
   $("captureCard").innerHTML = `
     <div class="kana">${c.kana}</div>
     <div class="romaji">${c.romaji}</div>
+    ${tunerLine}
     <div class="axes">
       ${axisBar("大小", c.axes.size)}
       ${axisBar("鋭鈍", c.axes.sharpness)}
@@ -327,6 +383,18 @@ $("startBtn").onclick = () => start().catch((e) => {
   setStatus("denied", "起動に失敗しました");
 });
 $("sensitivity").oninput = applySensitivity;
+$("inputSelect").onchange = () => {
+  if (ctx) startMic($("inputSelect").value || null);
+};
+$("outputSelect").onchange = async () => {
+  if (ctx && typeof ctx.setSinkId === "function") {
+    try {
+      await ctx.setSinkId($("outputSelect").value || "");
+    } catch (err) {
+      console.warn("setSinkId failed:", err);
+    }
+  }
+};
 for (const [key, fn] of Object.entries(DEMOS)) {
   const el = $(`demo-${key}`);
   if (el) el.onclick = () => synthAndFeed(fn);

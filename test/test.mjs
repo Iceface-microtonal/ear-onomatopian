@@ -10,6 +10,7 @@ import { SoundEventAnalyzer } from "../js/analyzer.js";
 import { mapAxes, pitchOffsets } from "../js/mapper.js";
 import { shape, applyShape } from "../js/shaper.js";
 import { renderEvent, attackGain } from "../js/renderer.js";
+import { snapToEqualTemperament, noteDisplay, melodyDisplay } from "../js/notes.js";
 
 const SR = 48000;
 let passed = 0;
@@ -165,6 +166,34 @@ test("チャープは定常音より flux が高い", () => {
   const steady = run(sine(0.6, 300, 0.3))[0];
   const moving = run(chirp(0.6, 200, 500, 0.3))[0];
   assert.ok(moving.spectralFlux > steady.spectralFlux);
+});
+
+console.log("MacTuner 連携 (YIN + ドレミ):");
+test("YIN: 60Hz の低音 (旧検出域 95Hz 未満) を聴き取れる", () => {
+  const ev = run(sine(1.0, 60, 0.3))[0];
+  assert.ok(ev.pitchMedianHz > 55 && ev.pitchMedianHz < 66, `pitch=${ev.pitchMedianHz}`);
+  assert.ok(ev.voicedRatio > 0.5);
+});
+test("YIN: 1.5kHz の高音 (旧上限 800Hz 超え)", () => {
+  const ev = run(sine(0.5, 1500, 0.3))[0];
+  assert.ok(Math.abs(ev.pitchMedianHz - 1500) < 60, `pitch=${ev.pitchMedianHz}`);
+});
+test("baseF0 は平均律スナップ (225Hz → ラ3 220Hz)", () => {
+  const s = shape(feat({ voicedRatio: 0.8, pitchMedianHz: 225 }), 0);
+  assert.ok(Math.abs(s.baseF0Override - 220) < 0.5, `f0=${s.baseF0Override}`);
+});
+test("mora オフセットは整数半音 (ソルフェージュ模倣)", () => {
+  const o = pitchOffsets([-2.4, 0.6, 1.3], 0, 0.5, 3);
+  assert.ok(o.length > 0);
+  for (const v of o) assert.equal(v, Math.round(v));
+});
+test("NoteNamer: 表示と旋律", () => {
+  assert.equal(noteDisplay(440), "ラ4");
+  assert.equal(noteDisplay(261.63), "ド4");
+  assert.ok(noteDisplay(450).includes("+39"), noteDisplay(450));
+  assert.ok(Math.abs(snapToEqualTemperament(225) - 220) < 0.01);
+  assert.equal(melodyDisplay(392, [0, -3, 0]), "♪ソ・ミ・ソ");
+  assert.equal(melodyDisplay(392, []), "♪ソ");
 });
 
 console.log("mapper:");
