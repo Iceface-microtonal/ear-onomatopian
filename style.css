@@ -1,0 +1,194 @@
+/* Ear Onomatopian web — シリーズ共通の淡いピンク・青・白 */
+
+:root {
+  --bg: #ffffff;
+  --panel: #edf5fe;        /* 淡い青 */
+  --panel-pink: #fef1f5;   /* 淡いピンク */
+  --pink: #eb5c9e;
+  --blue: #4dbff2;
+  --pale-pink: #f7b8d1;
+  --pale-blue: #aed9f5;
+  --ink: #404c66;
+  --ink-soft: #8c99ad;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+               system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ─── 起動オーバーレイ ─── */
+#startOverlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, var(--panel-pink), var(--panel));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  padding: 24px;
+}
+#startOverlay.hidden { display: none; }
+.startCard {
+  background: var(--bg);
+  border-radius: 20px;
+  padding: 36px 32px;
+  max-width: 440px;
+  text-align: center;
+  box-shadow: 0 8px 40px rgba(235, 92, 158, 0.15);
+}
+.startCard h1 { color: var(--pink); font-size: 28px; }
+.tagline { color: var(--blue); font-size: 14px; margin: 6px 0 14px; }
+.desc { font-size: 13px; line-height: 1.8; color: var(--ink); text-align: left; }
+#startBtn {
+  margin-top: 20px;
+  font-size: 17px;
+  padding: 12px 34px;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pink), var(--blue));
+  color: white;
+  cursor: pointer;
+}
+#startBtn:hover { filter: brightness(1.06); }
+.hint { font-size: 11px; color: var(--ink-soft); margin-top: 12px; }
+
+/* ─── ヘッダ ─── */
+header { display: flex; align-items: center; gap: 10px; }
+#statusDot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: var(--pale-blue);
+  box-shadow: 0 0 6px var(--pale-blue);
+  flex: none;
+}
+#statusDot[data-phase="capturing"] { background: var(--pink); box-shadow: 0 0 8px var(--pale-pink); }
+#statusDot[data-phase="speaking"]  { background: var(--blue); box-shadow: 0 0 8px var(--pale-blue); }
+#statusDot[data-phase="denied"]    { background: #d8d8d8; box-shadow: none; }
+#statusLabel { font-weight: 600; font-size: 15px; white-space: nowrap; }
+.spacer { flex: 1; }
+.sens { font-size: 12px; color: var(--ink-soft); display: flex; align-items: center; gap: 8px; }
+#sensitivity { accent-color: var(--pink); width: 140px; }
+#sensValue { font-size: 12px; color: var(--ink-soft); width: 52px; text-align: right; }
+
+/* ─── レベルメータ ─── */
+#levelMeter {
+  height: 10px;
+  background: var(--panel);
+  border-radius: 999px;
+  overflow: hidden;
+}
+#levelFill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--pale-blue), var(--pink));
+  transition: width 0.08s linear;
+}
+
+/* ─── キャプチャカード ─── */
+#captureCard {
+  background: var(--panel);
+  border-radius: 14px;
+  padding: 22px;
+  text-align: center;
+}
+#captureCard.placeholder { padding: 40px 22px; }
+#captureCard .dots { color: var(--pale-blue); font-size: 26px; letter-spacing: 6px; }
+#captureCard.placeholder p { color: var(--ink-soft); font-size: 14px; margin-top: 10px; }
+.kana {
+  font-size: clamp(30px, 9vw, 52px);
+  font-weight: 700;
+  color: var(--pink);
+  line-height: 1.25;
+}
+.romaji { font-family: ui-monospace, monospace; font-size: 15px; color: var(--blue); margin-top: 4px; }
+
+.axes { margin: 16px auto 0; max-width: 420px; display: flex; flex-direction: column; gap: 6px; }
+.axis { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+.axisName { width: 38px; color: var(--ink-soft); text-align: right; flex: none; }
+.axisTrack {
+  flex: 1; height: 8px; position: relative;
+  background: white; border-radius: 999px; overflow: hidden;
+}
+.axisTrack::after {
+  content: ""; position: absolute; left: 50%; top: 0; bottom: 0;
+  width: 1px; background: var(--pale-blue);
+}
+.axisFill { position: absolute; top: 0; bottom: 0; border-radius: 999px; }
+.axisFill.pos { background: var(--pink); }
+.axisFill.neg { background: var(--blue); }
+.axisVal { width: 44px; text-align: left; color: var(--ink-soft); font-family: ui-monospace, monospace; flex: none; }
+
+.featGrid {
+  margin-top: 16px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+.feat {
+  background: var(--panel-pink);
+  border-radius: 8px;
+  padding: 6px 4px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.feat span { font-size: 10px; color: var(--ink-soft); }
+.feat b { font-size: 12px; color: var(--ink); font-weight: 600; }
+
+/* ─── テスト音 ─── */
+.demoRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.demoLabel { font-size: 12px; color: var(--ink-soft); }
+.demoRow button {
+  border: 1px solid var(--pale-blue);
+  background: white;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.demoRow button:hover { background: var(--panel); }
+
+/* ─── 履歴 ─── */
+#historyList { display: flex; flex-direction: column; gap: 6px; }
+.histRow {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--panel-pink);
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+.histKana { font-weight: 700; color: var(--pink); font-size: 16px; }
+.histMeta { flex: 1; font-size: 11px; color: var(--ink-soft);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.replayBtn {
+  border: none; background: white; color: var(--blue);
+  border-radius: 50%; width: 30px; height: 30px; cursor: pointer; flex: none;
+}
+.replayBtn:hover { background: var(--panel); }
+
+footer {
+  display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px;
+  font-size: 11px; color: var(--ink-soft);
+  padding-top: 8px;
+  border-top: 1px solid var(--panel);
+}
+footer a { color: var(--blue); text-decoration: none; }
+
+@media (max-width: 480px) {
+  .featGrid { grid-template-columns: repeat(2, 1fr); }
+  #sensitivity { width: 90px; }
+}
