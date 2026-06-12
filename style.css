@@ -85,6 +85,14 @@ header {
 }
 .brand { font-size: 12px; font-weight: 800; color: var(--gray); }
 .brand .pts { color: var(--pink); }
+.voice {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--pink);
+  background: var(--pink-bg);
+  border-radius: 4px;
+  padding: 3px 8px;
+}
 #statusDot {
   width: 8px;
   height: 8px;
