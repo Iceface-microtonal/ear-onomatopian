@@ -11,6 +11,7 @@ import { mapAxes, pitchOffsets } from "../js/mapper.js";
 import { shape, applyShape } from "../js/shaper.js";
 import { renderEvent, attackGain } from "../js/renderer.js";
 import { snapToEqualTemperament, noteDisplay, melodyDisplay } from "../js/notes.js";
+import { deriveEffects, applyEffects } from "../js/effects.js";
 
 const SR = 48000;
 let passed = 0;
@@ -194,6 +195,41 @@ test("NoteNamer: 表示と旋律", () => {
   assert.ok(Math.abs(snapToEqualTemperament(225) - 220) < 0.01);
   assert.equal(melodyDisplay(392, [0, -3, 0]), "♪ソ・ミ・ソ");
   assert.equal(melodyDisplay(392, []), "♪ソ");
+});
+
+console.log("音質まねエフェクト:");
+test("derive: 音色を写像 (明暗→トーン / 粗→crush / 動→wah)", () => {
+  assert.ok(deriveEffects(feat({ centroidHz: 5000 })).toneLowpassHz >
+            deriveEffects(feat({ centroidHz: 500 })).toneLowpassHz);
+  assert.ok(deriveEffects(feat({ flatness: 0.5, zcr: 0.3 })).crushBits < 15.5);
+  const tonal = deriveEffects(feat({ flatness: 0.05, zcr: 0.02 }));
+  assert.equal(tonal.crushBits, 16);
+  assert.equal(tonal.crushDownsample, 1);
+  assert.ok(deriveEffects(feat({ spectralFlux: 0.5 })).wahDepth > 0);
+  assert.equal(deriveEffects(feat({ spectralFlux: 0.05 })).wahDepth, 0);
+});
+test("apply: 範囲内 + 波形変化 / bypass は無変更 / S&H ホールド", () => {
+  const sig = sine(0.3, 440, 0.5);
+  const orig = Float32Array.from(sig);
+  applyEffects(deriveEffects(feat({ centroidHz: 600, flatness: 0.5, zcr: 0.3, spectralFlux: 0.5 })),
+               sig, 48000);
+  assert.equal(sig.length, orig.length);
+  assert.ok(sig.every((v) => Math.abs(v) <= 1.0001));
+  let diff = 0;
+  for (let i = 0; i < sig.length; i++) diff = Math.max(diff, Math.abs(sig[i] - orig[i]));
+  assert.ok(diff > 0.01, "エフェクトで波形が変化");
+
+  const sig2 = sine(0.2, 440, 0.5);
+  const orig2 = Float32Array.from(sig2);
+  applyEffects({ enabled: false }, sig2, 48000);
+  assert.deepEqual(sig2, orig2);
+
+  const sh = new Float32Array(32).map((_, i) => i / 32);
+  applyEffects({ enabled: true, toneLowpassHz: 9000, toneHighpassHz: 0, wahDepth: 0,
+                 drive: 0, crushBits: 16, crushDownsample: 4 }, sh, 48000);
+  for (let b = 0; b < 28; b += 4) {
+    for (let k = 1; k < 4; k++) assert.ok(Math.abs(sh[b + k] - sh[b]) < 1e-6);
+  }
 });
 
 console.log("mapper:");

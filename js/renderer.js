@@ -5,6 +5,7 @@
 //
 
 import { totalDurationMs } from "./core.js";
+import { applyEffects } from "./effects.js";
 
 /// mora → wav 名。撥音 = n_N、母音単独 = v_<v>、CV = cv_<c><v>。
 export function sampleName(mora) {
@@ -49,7 +50,8 @@ function mixInto(src, dst, totalFrames, atSec, maxSec, rate, amplitude, sampleRa
 /// - samples: { name → Float32Array } (context.sampleRate へデコード済み)
 /// - 返値: { data: Float32Array, durationSec: number } または null
 export function renderEvent(event, samples, sampleRate,
-                            { gain = 1.0, attackSec = 0, mirrorReverse = false } = {}) {
+                            { gain = 1.0, attackSec = 0, mirrorReverse = false,
+                              effects = null } = {}) {
   // baseF0 → グローバル半音 (録音 ≈ 200Hz 基準)。±6 半音。
   const globalSemis = Math.max(-6, Math.min(6, 12 * Math.log2(event.baseF0 / 200)));
 
@@ -76,6 +78,10 @@ export function renderEvent(event, samples, sampleRate,
     }
     cursorSec += slotSec;
   });
+
+  // 音質まね: 入力の音色をエフェクトで真似る (ドライ語 → 色付け)。
+  // アタック・鏡像より前に掛けて語そのものの音質を変える。
+  if (effects && effects.enabled) applyEffects(effects, dst, sampleRate);
 
   // アタック鏡映し (語の 70% を上限)
   if (attackSec > 0) {

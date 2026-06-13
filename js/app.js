@@ -11,6 +11,7 @@ import { mapAxes, pitchOffsets } from "./mapper.js";
 import { shape, applyShape } from "./shaper.js";
 import { renderEvent } from "./renderer.js";
 import { noteDisplay, melodyDisplay } from "./notes.js";
+import { deriveEffects } from "./effects.js";
 
 // ─── 音源リスト (KanaFormatter の組合せと一致: 録音済み 110 ファイル) ───
 const RESTRICTED = { ky: ["a","u","o"], gy: ["a","u","o"], ny: ["a","u","o"],
@@ -189,10 +190,14 @@ function handleEvent(features) {
 }
 
 // ─── 発声 ───
+let effectsEnabled = true;
+
 function speak(capture) {
   const { event, shape: sh } = capture;
+  const fx = effectsEnabled ? deriveEffects(capture.features) : null;
   const r = renderEvent(event, samples, ctx.sampleRate, {
     gain: sh.replyGain, attackSec: sh.attackSec, mirrorReverse: sh.mirrorReverse,
+    effects: fx,
   });
   if (!r || r.durationSec <= 0) return;
   const buf = ctx.createBuffer(1, r.data.length, ctx.sampleRate);
@@ -382,6 +387,7 @@ $("startBtn").onclick = () => start().catch((e) => {
   setStatus("denied", "起動に失敗しました");
 });
 $("sensitivity").oninput = applySensitivity;
+$("fxToggle").onchange = () => { effectsEnabled = $("fxToggle").checked; };
 $("inputSelect").onchange = () => {
   if (ctx) startMic($("inputSelect").value || null);
 };

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ear Onomatopian — 聴いた音を、ことばで返す</title>
-<link rel="stylesheet" href="style.css?v=4">
+<link rel="stylesheet" href="style.css?v=5">
 </head>
 <body>
   <div id="startOverlay">
@@ -26,6 +26,7 @@
     <span id="statusDot" data-phase="idle"></span>
     <span id="statusLabel">待機中</span>
     <span class="spacer"></span>
+    <label class="fx"><input type="checkbox" id="fxToggle" checked> 音質まね</label>
     <label class="sens">感度
       <input type="range" id="sensitivity" min="-56" max="-24" step="1" value="-38">
     </label>
@@ -75,6 +76,6 @@
       <a href="https://github.com/Iceface-microtonal/ear-onomatopian" target="_blank" rel="noopener">GitHub</a></span>
   </footer>
 
-  <script type="module" src="js/app.js?v=4"></script>
+  <script type="module" src="js/app.js?v=5"></script>
 </body>
 </html>

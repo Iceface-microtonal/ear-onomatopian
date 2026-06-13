@@ -106,6 +106,8 @@ header {
 #statusDot[data-phase="denied"]     { background: var(--gray); }
 #statusLabel { font-size: 10px; color: var(--gray); }
 .spacer { flex: 1; }
+.fx { font-size: 10px; color: var(--gray); display: flex; align-items: center; gap: 4px; }
+.fx input { accent-color: var(--pink); }
 .sens { font-size: 10px; color: var(--gray); display: flex; align-items: center; gap: 6px; }
 #sensitivity {
   accent-color: var(--pink);
