@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ear Onomatopian — 聴いた音を、ことばで返す</title>
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
   <div id="startOverlay">
@@ -56,12 +56,13 @@
   <section class="panel">
     <div class="panel-title">AUDIO</div>
     <div class="deviceRow">
-      <label>input
+      <label>input (マイク / 外部入力)
         <select id="inputSelect" disabled><option>はじめると選べます</option></select>
       </label>
       <label>output
         <select id="outputSelect" disabled><option>はじめると選べます</option></select>
       </label>
+      <button id="rescanDevices" class="rescanBtn">⟳ 再スキャン</button>
     </div>
   </section>
 
@@ -76,6 +77,6 @@
       <a href="https://github.com/Iceface-microtonal/ear-onomatopian" target="_blank" rel="noopener">GitHub</a></span>
   </footer>
 
-  <script type="module" src="js/app.js?v=5"></script>
+  <script type="module" src="js/app.js?v=6"></script>
 </body>
 </html>

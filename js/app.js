@@ -388,6 +388,7 @@ $("startBtn").onclick = () => start().catch((e) => {
 });
 $("sensitivity").oninput = applySensitivity;
 $("fxToggle").onchange = () => { effectsEnabled = $("fxToggle").checked; };
+$("rescanDevices").onclick = () => { if (ctx) populateDeviceSelects(); };
 $("inputSelect").onchange = () => {
   if (ctx) startMic($("inputSelect").value || null);
 };
