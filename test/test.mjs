@@ -12,6 +12,8 @@ import { shape, applyShape } from "../js/shaper.js";
 import { renderEvent, attackGain } from "../js/renderer.js";
 import { snapToEqualTemperament, noteDisplay, melodyDisplay } from "../js/notes.js";
 import { deriveEffects, applyEffects } from "../js/effects.js";
+import { matchPercussion } from "../js/percussion.js";
+import { katakana as kata } from "../js/core.js";
 
 const SR = 48000;
 let passed = 0;
@@ -167,6 +169,38 @@ test("チャープは定常音より flux が高い", () => {
   const steady = run(sine(0.6, 300, 0.3))[0];
   const moving = run(chirp(0.6, 200, 500, 0.3))[0];
   assert.ok(moving.spectralFlux > steady.spectralFlux);
+});
+
+console.log("打楽器の代表語化:");
+test("シンバル: 明るく長い余韻のノイズ → シャ を含む", () => {
+  const n = Math.floor(0.9 * SR);
+  const sig = new Float32Array(n + Math.floor(0.8 * SR));
+  const ns = noise(0.9, 0.5);
+  for (let i = 0; i < n; i++) sig[i] = ns[i] * (1 - i / n);
+  const an = new SoundEventAnalyzer(SR, 1024);
+  let ev = null;
+  for (let i = 0; i + 1024 <= sig.length; i += 1024) { const e = an.process(sig.subarray(i, i+1024)); if (e) ev = e; }
+  const hit = matchPercussion(ev);
+  assert.ok(hit && ["cymbal", "sizzle"].includes(hit.kind), `kind=${hit && hit.kind}`);
+  const k = hit.kanaOverride ?? kata(hit.moras, hit.elongateFinal);
+  assert.ok(k.includes("シャ"), `kana=${k}`);
+  assert.ok(hit.elongateFinal);
+});
+test("ハイハット: 明るく極短のノイズ → チッ", () => {
+  const ev = run(noise(0.04, 0.5))[0];
+  const hit = matchPercussion(ev);
+  assert.ok(hit && hit.kind === "hihat", `kind=${hit && hit.kind}`);
+  assert.equal(hit.kanaOverride, "チッ");
+});
+test("キック: 低い短音 → ド を含む", () => {
+  const ev = run(sine(0.18, 70, 0.4))[0];
+  const hit = matchPercussion(ev);
+  assert.ok(hit && ["kick", "bigKick"].includes(hit.kind), `kind=${hit && hit.kind}`);
+  assert.ok(kata(hit.moras, hit.elongateFinal).startsWith("ド"));
+});
+test("持続音程 (声) → 打楽器にしない (null)", () => {
+  const ev = run(sine(0.6, 220, 0.3))[0];
+  assert.equal(matchPercussion(ev), null);
 });
 
 console.log("MacTuner 連携 (YIN + ドレミ):");

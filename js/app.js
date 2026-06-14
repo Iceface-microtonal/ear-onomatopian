@@ -12,6 +12,7 @@ import { shape, applyShape } from "./shaper.js";
 import { renderEvent } from "./renderer.js";
 import { noteDisplay, melodyDisplay } from "./notes.js";
 import { deriveEffects } from "./effects.js";
+import { matchPercussion } from "./percussion.js";
 
 // ─── 音源リスト (KanaFormatter の組合せと一致: 録音済み 110 ファイル) ───
 const RESTRICTED = { ky: ["a","u","o"], gy: ["a","u","o"], ny: ["a","u","o"],
@@ -153,34 +154,49 @@ function updateLevel(db, active) {
 }
 
 // ─── イベント → オノマトペ ───
+let percussionEnabled = true;
+
 function handleEvent(features) {
   const axes = mapAxes(features);
   const sh = shape(features, axes.texture);
 
-  const rng = new SeededRNG(deterministicSeed(axes));
-  let event = generate(axes, { temperature: 0.35, allowNilOnset: true,
-                               allowMoraicN: true,
-                               moraCountOverride: sh.moraCount, rng });
-  event = applyShape(sh, event);
+  let event, kana, rom, percussionLabel = null;
+  const hit = percussionEnabled ? matchPercussion(features) : null;
 
-  const offsets = pitchOffsets(features.pitchContourSemis,
-                               features.pitchSlopeSemisPerSec,
-                               features.durationSec, event.moras.length);
-  if (offsets.length) {
-    event.moras.forEach((m, i) => {
-      if (i < offsets.length) m.pitchOffsetSemis = offsets[i];
-    });
-  }
+  if (hit) {
+    // 打楽器ライク: 代表語テンプレートに寄せる (長さ・語尾は入力に追従、旋律/鏡像なし)
+    const pShape = { ...sh, elongateFinal: hit.elongateFinal, baseF0Override: null };
+    event = applyShape(pShape, { axes, moras: hit.moras.map((m) => ({ ...m })),
+                                 baseF0: hit.baseF0, isReduplicated: false });
+    kana = hit.kanaOverride ?? katakana(event.moras, pShape.elongateFinal);
+    rom = romaji(event);
+    percussionLabel = hit.label;
+  } else {
+    // 通常: 軸から決定的に生成
+    const rng = new SeededRNG(deterministicSeed(axes));
+    event = generate(axes, { temperature: 0.35, allowNilOnset: true,
+                             allowMoraicN: true, moraCountOverride: sh.moraCount, rng });
+    event = applyShape(sh, event);
 
-  let kana = katakana(event.moras, sh.elongateFinal);
-  let rom = romaji(event);
-  if (sh.mirrorReverse) {
-    kana = mirroredKana(kana);
-    rom = rom + " / " + [...rom].reverse().join("");
+    const offsets = pitchOffsets(features.pitchContourSemis,
+                                 features.pitchSlopeSemisPerSec,
+                                 features.durationSec, event.moras.length);
+    if (offsets.length) {
+      event.moras.forEach((m, i) => {
+        if (i < offsets.length) m.pitchOffsetSemis = offsets[i];
+      });
+    }
+
+    kana = katakana(event.moras, sh.elongateFinal);
+    rom = romaji(event);
+    if (sh.mirrorReverse) {
+      kana = mirroredKana(kana);
+      rom = rom + " / " + [...rom].reverse().join("");
+    }
   }
 
   const capture = { features, axes, shape: sh, event, kana, romaji: rom,
-                    date: new Date() };
+                    date: new Date(), percussionLabel };
   window.__lastCapture = capture;   // デバッグ/検証用
   history.unshift(capture);
   if (history.length > 20) history.pop();
@@ -264,6 +280,7 @@ function renderCapture(c) {
     ["鏡像", c.shape.mirrorReverse ? "⇄ 逆再生" : "—"],
     ["声の高さ", c.shape.baseF0Override ? `${c.shape.baseF0Override.toFixed(0)} Hz` : "自動"],
     ["声量", `${(c.shape.replyGain * 100).toFixed(0)}%`],
+    ["打楽器", c.percussionLabel ?? "—"],
   ];
   // 真似の生真面目さ: 入力のずれた音程 → きっちりドレミの返事 (MacTuner 連携)
   let tunerLine = "";
