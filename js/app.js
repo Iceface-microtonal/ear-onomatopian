@@ -230,6 +230,7 @@ function applySensitivity() {
   if (analyzer) {
     analyzer.onsetDb = v;
     analyzer.releaseDb = v - 10;
+    analyzer.minPeakDb = v;   // ピーク下限も感度に追従 (小さな音の取りこぼし防止)
   }
 }
 
@@ -313,6 +314,7 @@ function synthAndFeed(makeSignal) {
   const an = new SoundEventAnalyzer(sr, 1024);
   an.onsetDb = Number($("sensitivity").value);
   an.releaseDb = an.onsetDb - 10;
+  an.minPeakDb = an.onsetDb;
   const sig = makeSignal(sr);
   const padded = new Float32Array(sig.length + Math.floor(0.8 * sr));
   padded.set(sig, 0);

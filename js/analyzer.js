@@ -304,7 +304,7 @@ export class SoundEventAnalyzer {
     for (let i = 1; i < n; i++) if ((x[i - 1] < 0) !== (x[i] < 0)) zc++;
     const zcr = zc / (n - 1);
 
-    if (db <= -55) {
+    if (db <= -66) {   // 高感度設定でも小さな音を解析できるよう下限を下げる
       this.smoothMagsValid = false;
       return { rms, db, centroidHz: 0, flatness: 0, flux: 0, zcr,
                pitchHz: 0, pitchConfidence: 0 };
