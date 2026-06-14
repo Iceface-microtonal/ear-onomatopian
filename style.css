@@ -1,11 +1,57 @@
-/* Ear Onomatopian web — シンプル単色 (iceface_onomatopian.html と同系統) */
+/* Ear Onomatopian web — 4 テーマ (白 / ピンク / 水色 / ブラック)。
+   アクセント (ピンク) はブランドとして共通。背景・面・文字・境界をテーマで切替。 */
 
-:root {
+/* 既定 = 白 */
+:root,
+[data-theme="white"] {
   --pink: #e8488a;
   --pink-bg: rgba(232, 72, 138, 0.10);
   --pink-bg2: rgba(232, 72, 138, 0.18);
   --gray: #888;
   --border: rgba(0, 0, 0, 0.10);
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --text: #111111;
+  --axis-neg: #111111;
+}
+
+/* ピンク背景 (白カードで可読性を確保) */
+[data-theme="pink"] {
+  --pink: #e8488a;
+  --pink-bg: rgba(232, 72, 138, 0.12);
+  --pink-bg2: rgba(232, 72, 138, 0.22);
+  --gray: #9a6980;
+  --border: rgba(120, 30, 70, 0.14);
+  --bg: #fbe2ee;
+  --surface: #ffffff;
+  --text: #3a1226;
+  --axis-neg: #c2185b;
+}
+
+/* 水色背景 (負バーは青で水色感を出す) */
+[data-theme="aqua"] {
+  --pink: #e8488a;
+  --pink-bg: rgba(232, 72, 138, 0.12);
+  --pink-bg2: rgba(232, 72, 138, 0.22);
+  --gray: #5f8794;
+  --border: rgba(10, 70, 90, 0.14);
+  --bg: #e0f3fb;
+  --surface: #ffffff;
+  --text: #0f2e3a;
+  --axis-neg: #1591c4;
+}
+
+/* ブラック (ダーク。ピンクを少し明るく) */
+[data-theme="black"] {
+  --pink: #ff5fa2;
+  --pink-bg: rgba(255, 95, 162, 0.16);
+  --pink-bg2: rgba(255, 95, 162, 0.28);
+  --gray: #9095a0;
+  --border: rgba(255, 255, 255, 0.14);
+  --bg: #0e0e12;
+  --surface: #1a1a20;
+  --text: #f0f0f3;
+  --axis-neg: #cdd4e0;
 }
 
 * {
@@ -17,19 +63,20 @@
 
 body {
   font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
-  background: #fff;
-  color: #111;
+  background: var(--bg);
+  color: var(--text);
   padding: 10px;
   max-width: 900px;
   margin: 0 auto;
   min-height: 100vh;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 
 /* ─── 起動オーバーレイ ─── */
 #startOverlay {
   position: fixed;
   inset: 0;
-  background: #fff;
+  background: var(--bg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -43,7 +90,7 @@ body {
   padding: 24px;
   max-width: 420px;
   text-align: left;
-  background: #fff;
+  background: var(--surface);
 }
 .startCard h1 {
   font-size: 16px;
@@ -59,7 +106,7 @@ body {
 .desc {
   font-size: 12px;
   line-height: 1.7;
-  color: #111;
+  color: var(--text);
 }
 #startBtn {
   margin-top: 16px;
@@ -82,6 +129,7 @@ header {
   align-items: center;
   gap: 8px;
   padding: 6px 2px 10px;
+  flex-wrap: wrap;
 }
 .brand { font-size: 12px; font-weight: 800; color: var(--gray); }
 .brand .pts { color: var(--pink); }
@@ -102,7 +150,7 @@ header {
 }
 #statusDot[data-phase="listening"]  { background: var(--pink); opacity: 0.4; }
 #statusDot[data-phase="capturing"]  { background: var(--pink); }
-#statusDot[data-phase="speaking"]   { background: #111; }
+#statusDot[data-phase="speaking"]   { background: var(--text); }
 #statusDot[data-phase="denied"]     { background: var(--gray); }
 #statusLabel { font-size: 10px; color: var(--gray); }
 .spacer { flex: 1; }
@@ -115,13 +163,27 @@ header {
 }
 #sensValue { font-size: 10px; color: var(--gray); width: 44px; text-align: right; }
 
+/* ─── テーマ切替スウォッチ ─── */
+.themeRow { display: flex; gap: 5px; align-items: center; }
+.themeSwatch {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 1px solid var(--border); cursor: pointer; padding: 0;
+  outline: none;
+}
+.themeSwatch[data-set="white"] { background: #fff; }
+.themeSwatch[data-set="pink"]  { background: #fbe2ee; }
+.themeSwatch[data-set="aqua"]  { background: #e0f3fb; }
+.themeSwatch[data-set="black"] { background: #0e0e12; }
+.themeSwatch.sel { box-shadow: 0 0 0 2px var(--pink); border-color: var(--pink); }
+
 /* ─── パネル ─── */
 .panel {
-  background: #fff;
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 10px;
   margin-bottom: 8px;
+  transition: background 0.2s ease, border-color 0.2s ease;
 }
 .panel-title {
   font-size: 10px;
@@ -158,7 +220,7 @@ header {
 .kana {
   font-size: 36px;
   font-weight: 700;
-  color: #111;
+  color: var(--text);
   line-height: 1.2;
   word-break: break-all;
 }
@@ -204,7 +266,7 @@ header {
   background: var(--border);
 }
 .axisFill { position: absolute; top: 0; bottom: 0; background: var(--pink); }
-.axisFill.neg { background: #111; }
+.axisFill.neg { background: var(--axis-neg); }
 .axisVal { width: 44px; text-align: right; color: var(--gray); font-size: 10px; flex: none; }
 
 .featGrid {
@@ -218,7 +280,7 @@ header {
   overflow: hidden;
 }
 .feat {
-  background: #fff;
+  background: var(--surface);
   padding: 4px 6px;
   display: flex;
   flex-direction: column;
@@ -226,7 +288,7 @@ header {
   font-size: 9px;
 }
 .feat span { color: var(--gray); font-size: 9px; }
-.feat b { color: #111; font-weight: 700; font-size: 10px; }
+.feat b { color: var(--text); font-weight: 700; font-size: 10px; }
 
 /* ─── テスト音 ─── */
 .demoRow {
@@ -256,6 +318,7 @@ header {
   gap: 12px;
   font-size: 10px;
   color: var(--gray);
+  align-items: center;
 }
 .deviceRow label { display: flex; align-items: center; gap: 6px; }
 .deviceRow select {
@@ -263,8 +326,8 @@ header {
   font-size: 10px;
   border: 1px solid var(--border);
   border-radius: 4px;
-  background: #fff;
-  color: #111;
+  background: var(--surface);
+  color: var(--text);
   padding: 3px 6px;
   max-width: 200px;
 }
@@ -287,7 +350,7 @@ header {
   border-radius: 3px;
 }
 .histRow:hover { background: var(--pink-bg); }
-.histKana { font-weight: 700; font-size: 12px; color: #111; flex: none; }
+.histKana { font-weight: 700; font-size: 12px; color: var(--text); flex: none; }
 .histMeta {
   flex: 1;
   color: var(--gray);

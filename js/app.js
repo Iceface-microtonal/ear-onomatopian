@@ -388,6 +388,19 @@ $("startBtn").onclick = () => start().catch((e) => {
 });
 $("sensitivity").oninput = applySensitivity;
 $("fxToggle").onchange = () => { effectsEnabled = $("fxToggle").checked; };
+
+// ─── テーマ切替 (白/ピンク/水色/ブラック) ───
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name;
+  try { localStorage.setItem("earTheme", name); } catch (e) { /* private mode */ }
+  for (const b of document.querySelectorAll(".themeSwatch")) {
+    b.classList.toggle("sel", b.dataset.set === name);
+  }
+}
+for (const b of document.querySelectorAll(".themeSwatch")) {
+  b.onclick = () => applyTheme(b.dataset.set);
+}
+applyTheme(document.documentElement.dataset.theme || "white");
 $("rescanDevices").onclick = () => { if (ctx) populateDeviceSelects(); };
 $("inputSelect").onchange = () => {
   if (ctx) startMic($("inputSelect").value || null);
